@@ -4,8 +4,9 @@ use fastnbt::from_bytes;
 use flate2::read::GzDecoder;
 use serde::Deserialize;
 use std::io::Read;
+use std::slice::Iter;
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Debug, Clone)]
 #[serde(rename_all = "PascalCase")]
 struct ScoreboardRoot {
     data_version: i32,
@@ -14,7 +15,7 @@ struct ScoreboardRoot {
     data: ScoreboardData,
 }
 
-#[derive(Deserialize, Debug, Default)]
+#[derive(Deserialize, Debug, Default, Clone)]
 #[serde(default)]
 struct ScoreboardData {
     #[serde(rename = "DisplaySlots", default)]
@@ -27,14 +28,14 @@ struct ScoreboardData {
     teams: Vec<Teams>
 }
 
-#[derive(Deserialize, Debug, Default)]
+#[derive(Deserialize, Debug, Default, Clone)]
 #[serde(default)]
 struct DisplaySlot {
     #[serde(rename = "list", default)]
     list: String
 }
 
-#[derive(Deserialize, Debug, Default)]
+#[derive(Deserialize, Debug, Default, Clone)]
 #[serde(rename_all = "PascalCase")]
 struct Objectives {
     criteria_name: Option<String>,
@@ -42,7 +43,7 @@ struct Objectives {
     name: String,
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Debug, Clone)]
 #[serde(rename_all = "PascalCase")]
 struct PlayerScore {
     objective: String,
@@ -51,7 +52,7 @@ struct PlayerScore {
     locked: Option<i8>,
 }
 
-#[derive(Deserialize, Debug, Default)]
+#[derive(Deserialize, Debug, Default, Clone)]
 #[serde(rename_all = "PascalCase")]
 struct Teams {
     display_name: String,
@@ -73,8 +74,11 @@ fn main() {
 
     let scoreboard: ScoreboardRoot = from_bytes(&data).expect("failed to parse data");
 
-    let old_score_data = scoreboard_for_player(scoreboard.data.player_scores, old_name.clone());
+    let old_score_data = scoreboard_for_player(scoreboard.data.player_scores.clone(), old_name.clone());
+    let new_score_data = scoreboard_for_player(scoreboard.data.player_scores.clone(), new_name.clone());
     println!("{:?}", old_score_data);
+    println!();
+    println!("{:?}", new_score_data);
 }
 
 fn scoreboard_for_player(player_score: Vec<PlayerScore>, player_name: String) -> Vec<PlayerScore> {
