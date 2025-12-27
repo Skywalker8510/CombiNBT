@@ -63,7 +63,8 @@ struct Teams {
 fn main() {
     let args: Vec<_> = std::env::args().skip(1).collect();
     let file = std::fs::File::open(args[0].clone()).unwrap();
-    let player = args[1].clone();
+    let old_name = args[1].clone();
+    let new_name = args[2].clone();
 
     // Player dat files are compressed with GZip.
     let mut decoder = GzDecoder::new(file);
@@ -72,5 +73,10 @@ fn main() {
 
     let scoreboard: ScoreboardRoot = from_bytes(&data).expect("failed to parse data");
 
-    println!("{:?}", scoreboard);
+    let old_score_data = scoreboard_for_player(scoreboard.data.player_scores, old_name.clone());
+    println!("{:?}", old_score_data);
+}
+
+fn scoreboard_for_player(player_score: Vec<PlayerScore>, player_name: String) -> Vec<PlayerScore> {
+    player_score.into_iter().filter(|ps| ps.name == player_name).collect()
 }
