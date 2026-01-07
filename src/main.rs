@@ -1,11 +1,11 @@
 #![allow(dead_code)]
 
 use fastnbt::from_bytes;
+use flate2::Compression;
 use flate2::read::GzDecoder;
+use flate2::write::GzEncoder;
 use serde::{Deserialize, Serialize};
 use std::io::{Read, Write};
-use flate2::Compression;
-use flate2::write::GzEncoder;
 
 #[derive(Deserialize, Debug, Clone, Serialize)]
 #[serde(rename_all = "PascalCase")]
@@ -26,14 +26,14 @@ struct ScoreboardData {
     #[serde(rename = "PlayerScores", default)]
     player_scores: Vec<PlayerScore>,
     #[serde(rename = "Teams", default)]
-    teams: Vec<Teams>
+    teams: Vec<Teams>,
 }
 
 #[derive(Deserialize, Debug, Default, Clone, Serialize)]
 #[serde(default)]
 struct DisplaySlot {
     #[serde(rename = "list", default)]
-    list: String
+    list: String,
 }
 
 #[derive(Deserialize, Debug, Default, Clone, Serialize)]
@@ -95,24 +95,34 @@ fn main() {
 
     // println!("{:?}", scoreboard);
 
-    let old_score_data = match scoreboard_for_player(scoreboard.data.player_scores.clone(), old_name.clone()) {
-        Ok(data) => data,
-        Err(e) => panic!("{} {}", e, old_name),
-    };
+    let old_score_data =
+        match scoreboard_for_player(scoreboard.data.player_scores.clone(), old_name.clone()) {
+            Ok(data) => data,
+            Err(e) => panic!("{} {}", e, old_name),
+        };
     // println!("{:?}", old_score_data);
-    let new_score_data = scoreboard_for_player(scoreboard.data.player_scores.clone(), new_name.clone()).unwrap_or_else(|e| {
-        println!("{} {}", e, new_name);
-        println!("Continuing run. will replace all instances of {} with {}", old_name, new_name);
-        println!("Combining of data will not take place");
-        Vec::new()
-    });
+    let new_score_data =
+        scoreboard_for_player(scoreboard.data.player_scores.clone(), new_name.clone())
+            .unwrap_or_else(|e| {
+                println!("{} {}", e, new_name);
+                println!(
+                    "Continuing run. will replace all instances of {} with {}",
+                    old_name, new_name
+                );
+                println!("Combining of data will not take place");
+                Vec::new()
+            });
 
     let mut updated_score_data = Vec::new();
     for data in &old_score_data {
-        if let Some(found_data) = new_score_data.iter().find(|&new_data| data.objective == new_data.objective) {
-
+        if let Some(found_data) = new_score_data
+            .iter()
+            .find(|&new_data| data.objective == new_data.objective)
+        {
             #[allow(clippy::manual_map)]
-            let updated_score = if let Some(t) = data.score && let Some(y) = found_data.score{
+            let updated_score = if let Some(t) = data.score
+                && let Some(y) = found_data.score
+            {
                 Some(t + y)
             } else if let Some(t) = data.score {
                 Some(t)
@@ -136,7 +146,10 @@ fn main() {
         }
     }
     for data in &new_score_data {
-        if let Some(_found_data) = updated_score_data.iter().find(|&new_data| data.objective == new_data.objective) {
+        if let Some(_found_data) = updated_score_data
+            .iter()
+            .find(|&new_data| data.objective == new_data.objective)
+        {
             continue;
         } else {
             let updated_player_score = data.clone();
@@ -146,10 +159,12 @@ fn main() {
 
     // println!("{:?}", updated_score_data);
 
-    let player_score_no_old_name = scoreboard_excluding_player(scoreboard.data.player_scores, old_name.clone());
+    let player_score_no_old_name =
+        scoreboard_excluding_player(scoreboard.data.player_scores, old_name.clone());
     let mut player_score_without_player;
     if !new_score_data.is_empty() {
-        player_score_without_player = scoreboard_excluding_player(player_score_no_old_name, new_name.clone());
+        player_score_without_player =
+            scoreboard_excluding_player(player_score_no_old_name, new_name.clone());
     } else {
         player_score_without_player = player_score_no_old_name;
     }
@@ -164,14 +179,26 @@ fn main() {
     encoder.write_all(&new_bytes).unwrap();
 }
 
-fn scoreboard_for_player(player_score: Vec<PlayerScore>, player_name: String) -> Result<Vec<PlayerScore>, ArgError> {
-    let output: Vec<PlayerScore> = player_score.into_iter().filter(|ps| ps.name == player_name).collect();
+fn scoreboard_for_player(
+    player_score: Vec<PlayerScore>,
+    player_name: String,
+) -> Result<Vec<PlayerScore>, ArgError> {
+    let output: Vec<PlayerScore> = player_score
+        .into_iter()
+        .filter(|ps| ps.name == player_name)
+        .collect();
     if output.is_empty() {
-        return Err(ArgError::NameNotFound)
+        return Err(ArgError::NameNotFound);
     }
     Ok(output)
 }
 
-fn scoreboard_excluding_player(player_score: Vec<PlayerScore>, player_name: String) -> Vec<PlayerScore> {
-    player_score.into_iter().filter(|ps| ps.name != player_name).collect()
+fn scoreboard_excluding_player(
+    player_score: Vec<PlayerScore>,
+    player_name: String,
+) -> Vec<PlayerScore> {
+    player_score
+        .into_iter()
+        .filter(|ps| ps.name != player_name)
+        .collect()
 }
